@@ -1,4 +1,13 @@
 # Databricks notebook source
+spark.sql("USE CATALOG uber_pipeline")
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col, coalesce, lit
+
+df_trips = spark.table("silver.daily_trips")
+df_dim_unit = spark.table("gold.dim_unit")
+
 df_gold_fact = (
     df_trips.alias("f")
     .join(
@@ -20,7 +29,7 @@ df_gold_fact = (
         col("f.fare_value"),
         col("f.distance_km"),
         col("d.sk_unit"),
-        col("d.cost_center_responsible"),
+        col("d.cost_center"),
         col("d.unit_name"),
         col("d.region"),
     )
@@ -32,5 +41,5 @@ df_gold_fact = (
     .mode("overwrite")
     .option("overwriteSchema", "true")
     .partitionBy("event_date")
-    .saveAsTable("uber_pipeline.uber_raw.gold_fact_trips")
+    .saveAsTable("gold.fact_trips")
 )

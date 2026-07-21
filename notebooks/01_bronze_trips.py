@@ -1,15 +1,10 @@
 # Databricks notebook source
-# MAGIC %sql
-# MAGIC CREATE CATALOG IF NOT EXISTS UBER_PIPELINE;
-# MAGIC CREATE SCHEMA IF NOT EXISTS UBER_PIPELINE.UBER_RAW;
-# MAGIC CREATE VOLUME IF NOT EXISTS UBER_PIPELINE.UBER_RAW.LANDING;
-
-# COMMAND ----------
-
 from pyspark.sql.functions import current_timestamp, col
 
-bronze_schema_location = "/Volumes/uber_pipeline/uber_raw/landing/_autoloader_schema/daily_trips"
-bronze_checkpoint_location = "/Volumes/uber_pipeline/uber_raw/landing/_checkpoint/daily_trips"
+spark.sql("USE CATALOG uber_pipeline")
+
+bronze_schema_location = "/Volumes/uber_pipeline/bronze/landing/_autoloader_schema/daily_trips"
+bronze_checkpoint_location = "/Volumes/uber_pipeline/bronze/landing/_checkpoint_v2/daily_trips"
 
 df_bronze = (
     spark.readStream.format("cloudFiles")
@@ -19,7 +14,7 @@ df_bronze = (
     .option("cloudFiles.inferColumnTypes", "true")
     .option("cloudFiles.schemaHints", "unit_code STRING")  # corrige só essa coluna, resto continua inferido
     .option("header", "true")
-    .load("/Volumes/uber_pipeline/uber_raw/landing/raw")
+    .load("/Volumes/uber_pipeline/bronze/landing/raw")
     .withColumn("_ingestion_timestamp", current_timestamp())
     .withColumn("_source_file", col("_metadata.file_path"))
 )
@@ -29,5 +24,5 @@ df_bronze = (
     .format("delta")
     .option("checkpointLocation", bronze_checkpoint_location)
     .trigger(availableNow=True)
-    .table("uber_pipeline.uber_raw.bronze_daily_trips")
+    .table("bronze.daily_trips")
 )

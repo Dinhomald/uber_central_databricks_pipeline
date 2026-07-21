@@ -9,7 +9,7 @@ Uso: validar se o MERGE de SCD2 na Gold versionou corretamente.
 
 ## Mudanca 1 (efetiva a partir de 2026-05-01)
 - unit_code: 01001
-- campo alterado: cost_center_responsible
+- campo alterado: cost_center
 - de: CC-100-RH -> para: CC-400-TI
 - expectativa SCD2: 2 versoes para 01001, a antiga com valid_to = 2026-04-30 e is_current = false, a nova com valid_from = 2026-05-01 e is_current = true
 

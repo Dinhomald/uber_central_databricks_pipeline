@@ -20,11 +20,11 @@ OUTPUT_DIR = "/mnt/user-data/outputs/uber_synthetic_data_dim_unit"
 
 # Estado inicial (snapshot 1 - dia 2026-04-01)
 UNITS_V1 = [
-    {"unit_code": "01001", "unit_name": "Unidade Caxias do Sul - Centro", "region": "Serra Gaucha", "cost_center_responsible": "CC-100-RH"},
-    {"unit_code": "01002", "unit_name": "Unidade Porto Alegre - Matriz", "region": "Metropolitana", "cost_center_responsible": "CC-200-FIN"},
-    {"unit_code": "01003", "unit_name": "Unidade Curitiba - Batel", "region": "Sul", "cost_center_responsible": "CC-300-COM"},
-    {"unit_code": "02001", "unit_name": "Unidade Sao Paulo - Paulista", "region": "Sudeste", "cost_center_responsible": "CC-400-TI"},
-    {"unit_code": "02002", "unit_name": "Unidade Uberaba - Centro", "region": "Triangulo Mineiro", "cost_center_responsible": "CC-500-OPS"},
+    {"unit_code": "01001", "unit_name": "Unidade Caxias do Sul - Centro", "region": "Serra Gaucha", "cost_center": "CC-100-RH"},
+    {"unit_code": "01002", "unit_name": "Unidade Porto Alegre - Matriz", "region": "Metropolitana", "cost_center": "CC-200-FIN"},
+    {"unit_code": "01003", "unit_name": "Unidade Curitiba - Batel", "region": "Sul", "cost_center": "CC-300-COM"},
+    {"unit_code": "02001", "unit_name": "Unidade Sao Paulo - Paulista", "region": "Sudeste", "cost_center": "CC-400-TI"},
+    {"unit_code": "02002", "unit_name": "Unidade Uberaba - Centro", "region": "Triangulo Mineiro", "cost_center": "CC-500-OPS"},
 ]
 
 SNAPSHOT_DATES = [
@@ -33,7 +33,7 @@ SNAPSHOT_DATES = [
     datetime(2026, 5, 31),
 ]
 
-FIELDNAMES = ["unit_code", "unit_name", "region", "cost_center_responsible", "snapshot_date"]
+FIELDNAMES = ["unit_code", "unit_name", "region", "cost_center", "snapshot_date"]
 
 
 def apply_change(units, unit_code, **changes):
@@ -72,7 +72,7 @@ def main():
     # Mudança 1: unidade 01001 é transferida de RH (CC-100-RH) para TI (CC-400-TI)
     # -> simula transferência de centro de custo responsável, mantendo nome/região
     snapshot_2 = apply_change(
-        snapshot_1, "01001", cost_center_responsible="CC-400-TI"
+        snapshot_1, "01001", cost_center="CC-400-TI"
     )
     f2 = write_snapshot(snapshot_2, SNAPSHOT_DATES[1], OUTPUT_DIR)
 
@@ -93,7 +93,7 @@ def main():
         f.write(f"## Snapshots gerados\n- {f1}\n- {f2}\n- {f3}\n\n")
         f.write("## Mudanca 1 (efetiva a partir de 2026-05-01)\n")
         f.write("- unit_code: 01001\n")
-        f.write("- campo alterado: cost_center_responsible\n")
+        f.write("- campo alterado: cost_center\n")
         f.write("- de: CC-100-RH -> para: CC-400-TI\n")
         f.write("- expectativa SCD2: 2 versoes para 01001, a antiga com valid_to = 2026-04-30 "
                  "e is_current = false, a nova com valid_from = 2026-05-01 e is_current = true\n\n")
