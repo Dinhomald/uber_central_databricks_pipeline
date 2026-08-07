@@ -36,7 +36,7 @@ uber_pipeline
 
 Cada camada é um notebook separado, não um notebook monolítico. Mesma lógica que já aplico no Airflow separando DAGs por fonte (`dag_origem_a`, `dag_origem_b`, `dag_consolidacao_gold`) — reprocessar a dimensão não deveria obrigar reprocessar o fato inteiro, e vice-versa.
 
-Os notebooks são orquestrados via Databricks Workflows, com dependência explícita em grafo, não em sequência linear: `01_bronze_trips` e `02_bronze_dim_unit` rodam em paralelo (não dependem um do outro), convergindo em `03_silver_trips` e `03b_silver_dim_unit` respectivamente, que por sua vez alimentam `04_gold_dim_unit_scd2` e depois `05_gold_fact_trips` (que depende dos dois ramos). É o mesmo desenho de dependência que já uso com Airflow Datasets, só que declarado na UI do Job em vez de código.
+Os notebooks são orquestrados via Databricks Workflows, no Job `uber_pipeline_orchestration`, com dependência explícita em grafo, não em sequência linear: `01_bronze_trips` e `02_bronze_dim_unit` rodam em paralelo (não dependem um do outro), convergindo em `03_silver_trips` e `03b_silver_dim_unit` respectivamente, que por sua vez alimentam `04_gold_dim_unit_scd2` e depois `05_gold_fact_trips` (que depende dos dois ramos). É o mesmo desenho de dependência que já uso com Airflow Datasets, só que declarado na UI do Job em vez de código.
 
 ![Grafo de orquestração do Job](docs/job_orchestration_graph.png)
 
@@ -69,6 +69,8 @@ A dimensão de unidade (`dim_unit_snapshot-YYYY_MM_DD.csv`) simula 3 extrações
 2. **`content_hash`** (`sha2` sobre os atributos de negócio — `unit_name`, `region`, `cost_center` — nunca sobre `unit_code`/`valid_from`) é uma segunda guarda: mesmo que o controle de snapshot falhasse por algum motivo, o `MERGE` só fecha a versão vigente (`valid_to`, `is_current = false`) quando o conteúdo de negócio realmente mudou, não a cada execução.
 
 Com as duas guardas, rodar o mesmo snapshot duas vezes é um no-op: nenhuma versão nova é criada, nenhum `valid_to` é sobrescrito.
+
+**Cuidado que essa idempotência não cobre: estado residual na tabela de destino.** `control.processed_snapshots` protege contra reprocessar o mesmo snapshot duas vezes, mas não sabe nada sobre o conteúdo atual de `gold.dim_unit` — só sabe o que já viu. Se `gold.dim_unit` for repopulada do zero em algum momento (por exemplo, um `TRUNCATE` manual em teste, ou recriar a tabela para corrigir um bug), o controle de snapshots processados precisa ser resetado junto para aquele `source_table` (`DELETE FROM control.processed_snapshots WHERE source_table = 'silver.dim_unit'`). Sem isso, o `left_anti` do `04_gold_dim_unit_scd2` continua achando que todos os snapshots já foram processados, o notebook sai sem inserir nada, e a Gold fica vazia silenciosamente — sem erro nenhum. Já caiu nessa nesta sessão de desenvolvimento.
 
 **A dimensão de unidade agora passa por uma Silver própria**, ver seção "Por que existe uma Silver para a dimensão de unidade" acima — decisão que mudou no meio do projeto junto com o resto da idempotência da Gold.
 
